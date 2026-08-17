@@ -20,6 +20,9 @@ async function sendMessage(chatId, text, replyMarkup = null) {
             payload.reply_markup = replyMarkup;
         }
         
+        console.log('Sending message to:', chatId);
+        console.log('Payload:', JSON.stringify(payload));
+        
         const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
             method: 'POST',
             headers: {
@@ -28,7 +31,10 @@ async function sendMessage(chatId, text, replyMarkup = null) {
             body: JSON.stringify(payload)
         });
         
-        return await response.json();
+        const data = await response.json();
+        console.log('Telegram API response:', JSON.stringify(data));
+        
+        return data;
     } catch (error) {
         console.error('sendMessage error:', error);
         return null;
@@ -52,7 +58,8 @@ async function handleStart(chatId, firstName) {
         `💳 <b>QPay Данс</b>\n\n` +
         `Доорх товчлуур дээр дарж Khan Bank аппаар төлбөрөө хийнэ үү:`;
     
-    await sendMessage(chatId, message, keyboard);
+    const result = await sendMessage(chatId, message, keyboard);
+    console.log('handleStart result:', JSON.stringify(result));
 }
 
 // Webhook handler
@@ -85,7 +92,7 @@ exports.handler = async (event, context) => {
     try {
         // Telegram-с ирсэн update-г авах
         const update = JSON.parse(event.body);
-        console.log('Update received:', JSON.stringify(update));
+        console.log('Full update:', JSON.stringify(update));
         
         // Message байгаа эсэхийг шалгах
         if (update.message) {
@@ -93,15 +100,25 @@ exports.handler = async (event, context) => {
             const text = update.message.text || '';
             const firstName = update.message.from.first_name || 'Хэрэглэгч';
             
+            console.log('Chat ID:', chatId);
+            console.log('Text:', text);
+            console.log('First Name:', firstName);
+            
             // /start командыг боловсруулах
             if (text === '/start') {
                 await handleStart(chatId, firstName);
+            } else {
+                // Бусад мессежид хариу өгөх
+                await sendMessage(chatId, `Та "${text}" гэж бичсэн. /start гэж бичнэ үү.`);
             }
         }
         
         // Callback query байгаа эсэхийг шалгах
         if (update.callback_query) {
             const callbackId = update.callback_query.id;
+            const chatId = update.callback_query.message.chat.id;
+            
+            console.log('Callback query received');
             
             // Callback query-д хариу өгөх
             await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
@@ -114,6 +131,10 @@ exports.handler = async (event, context) => {
                     text: 'Төлбөр үүсгэж байна...'
                 })
             });
+            
+            // Khan Bank товчлуурыг дахин илгээх
+            const firstName = update.callback_query.from.first_name || 'Хэрэглэгч';
+            await handleStart(chatId, firstName);
         }
         
         return {
@@ -123,7 +144,8 @@ exports.handler = async (event, context) => {
         };
         
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error:', error.message);
+        console.error('Error stack:', error.stack);
         return {
             statusCode: 500,
             headers,
