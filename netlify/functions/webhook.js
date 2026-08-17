@@ -1,33 +1,21 @@
 const fetch = require('node-fetch');
 
-// Telegram Bot Token (шууд код дотор)
+// Telegram Bot Token
 const BOT_TOKEN = '8619454573:AAERvZhRNoeUrllKD2SDd4TDZS6yyne5ndg';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
-// Khan Bank QPay Deep Link
-const KHANBANK_LINK = 'khanbank://q?qPay_QRcode=0002010102121531279404962794049600260811923780427420014A00000084300010220Zyu1TML3Z-pQ4GBlMk1h5204739953034965405250005802MN5921KHURELSUKHERDENEBILEG6011ULAANBAATAR62240720Zyu1TML3Z-pQ4GBlMk1h7106QPP_QR78156274160678898577902228002016304AD46';
-
-// Telegram руу мессеж илгээх функц
-async function sendMessage(chatId, text, replyMarkup = null) {
+// Мессеж илгээх функц
+async function sendMessage(chatId, text) {
     try {
-        const payload = {
-            chat_id: chatId,
-            text: text
-        };
-        
-        if (replyMarkup) {
-            payload.reply_markup = replyMarkup;
-        }
-        
-        console.log('Sending message to:', chatId);
-        console.log('Payload:', JSON.stringify(payload));
-        
         const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                chat_id: chatId,
+                text: text
+            })
         });
         
         const data = await response.json();
@@ -35,42 +23,20 @@ async function sendMessage(chatId, text, replyMarkup = null) {
         
         return data;
     } catch (error) {
-        console.error('sendMessage error:', error);
+        console.error('sendMessage error:', error.message);
         return null;
     }
 }
 
-// /start командыг боловсруулах
-async function handleStart(chatId, firstName) {
-    const keyboard = {
-        inline_keyboard: [
-            [
-                {
-                    text: '🏦 Khan Bank',
-                    url: KHANBANK_LINK
-                }
-            ]
-        ]
-    };
-    
-    const message = `👋 Сайн байна уу, ${firstName}!\n\n` +
-        `💳 QPay Данс\n\n` +
-        `Доорх товчлуур дээр дарж Khan Bank аппаар төлбөрөө хийнэ үү:`;
-    
-    const result = await sendMessage(chatId, message, keyboard);
-    console.log('handleStart result:', JSON.stringify(result));
-}
-
 // Webhook handler
 exports.handler = async (event, context) => {
-    // CORS headers
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
     };
     
-    // OPTIONS request handling
+    // OPTIONS request
     if (event.httpMethod === 'OPTIONS') {
         return {
             statusCode: 200,
@@ -79,7 +45,7 @@ exports.handler = async (event, context) => {
         };
     }
     
-    // GET request handling (test хийхэд)
+    // GET request
     if (event.httpMethod === 'GET') {
         return {
             statusCode: 200,
@@ -89,11 +55,9 @@ exports.handler = async (event, context) => {
     }
     
     try {
-        // Telegram-с ирсэн update-г авах
         const update = JSON.parse(event.body);
-        console.log('Full update:', JSON.stringify(update));
+        console.log('Update received:', JSON.stringify(update));
         
-        // Message байгаа эсэхийг шалгах
         if (update.message) {
             const chatId = update.message.chat.id;
             const text = update.message.text || '';
@@ -103,12 +67,10 @@ exports.handler = async (event, context) => {
             console.log('Text:', text);
             console.log('First Name:', firstName);
             
-            // /start командыг боловсруулах
             if (text === '/start') {
-                await handleStart(chatId, firstName);
+                await sendMessage(chatId, `Сайн байна уу, ${firstName}! 👋`);
             } else {
-                // Бусад мессежид хариу өгөх
-                await sendMessage(chatId, `Та "${text}" гэж бичсэн. /start гэж бичнэ үү.`);
+                await sendMessage(chatId, 'Сайн байна уу! 👋');
             }
         }
         
@@ -120,7 +82,6 @@ exports.handler = async (event, context) => {
         
     } catch (error) {
         console.error('Error:', error.message);
-        console.error('Error stack:', error.stack);
         return {
             statusCode: 500,
             headers,
