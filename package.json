@@ -1,0 +1,16 @@
+{
+  "name": "telegram-khanbank-bot",
+  "version": "1.0.0",
+  "description": "Khan Bank QPay Telegram Bot",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'No build needed'",
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
