@@ -4,6 +4,9 @@ const fetch = require('node-fetch');
 const BOT_TOKEN = '8619454573:AAERvZhRNoeUrllKD2SDd4TDZS6yyne5ndg';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
+// Loading GIF
+const LOADING_GIF = 'https://res.cloudinary.com/dpdsuhwa9/image/upload/v1786929709/ntbiddiaktbe9hyld8ik.gif';
+
 // Хэрэглэгчийн төлөвийг хадгалах (memory)
 const userStates = {};
 
@@ -33,6 +36,37 @@ async function sendMessage(chatId, text, replyMarkup = null) {
         return data;
     } catch (error) {
         console.error('sendMessage error:', error.message);
+        return null;
+    }
+}
+
+// Зураг илгээх функц
+async function sendGif(chatId, gifUrl, caption = '', replyMarkup = null) {
+    try {
+        const payload = {
+            chat_id: chatId,
+            animation: gifUrl,
+            caption: caption
+        };
+        
+        if (replyMarkup) {
+            payload.reply_markup = replyMarkup;
+        }
+        
+        const response = await fetch(`${TELEGRAM_API}/sendAnimation`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await response.json();
+        console.log('Telegram sendAnimation response:', JSON.stringify(data));
+        
+        return data;
+    } catch (error) {
+        console.error('sendAnimation error:', error.message);
         return null;
     }
 }
@@ -86,33 +120,34 @@ async function answerCallback(callbackId, text = '') {
     }
 }
 
-// Банк сонгох товчлуурууд
+// Банк сонгох товчлуурууд (1 мөрөнд 1 товч)
 function getBankKeyboard() {
     return {
         inline_keyboard: [
-            [
-                { text: '🏦 ХААН БАНК', callback_data: 'bank_khan' },
-                { text: '🏦 ХУДАЛДАА ХӨГЖИЛ', callback_data: 'bank_tdb' }
-            ],
-            [
-                { text: '🏦 ХАС БАНК', callback_data: 'bank_xac' },
-                { text: '🏦 ТӨРИЙН БАНК', callback_data: 'bank_state' }
-            ],
-            [
-                { text: '🏦 БОГД БАНК', callback_data: 'bank_bogd' }
-            ]
+            [{ text: '🏦 ХААН БАНК', callback_data: 'bank_khan' }],
+            [{ text: '🏦 ХУДАЛДАА ХӨГЖИЛ', callback_data: 'bank_tdb' }],
+            [{ text: '🏦 ХАС БАНК', callback_data: 'bank_xac' }],
+            [{ text: '🏦 ТӨРИЙН БАНК', callback_data: 'bank_state' }],
+            [{ text: '🏦 БОГД БАНК', callback_data: 'bank_bogd' }]
         ]
     };
 }
 
-// Цэнэглэлт/Таталт сонгох товчлуурууд
+// Цэнэглэлт/Таталт сонгох товчлуурууд (1 мөрөнд 1 товч)
 function getTransactionKeyboard() {
     return {
         inline_keyboard: [
-            [
-                { text: '💰 ЦЭНЭГЛЭЛТ', callback_data: 'action_deposit' },
-                { text: '💸 ТАТАЛТ', callback_data: 'action_withdraw' }
-            ]
+            [{ text: '💰 ЦЭНЭГЛЭЛТ', callback_data: 'action_deposit' }],
+            [{ text: '💸 ТАТАЛТ', callback_data: 'action_withdraw' }]
+        ]
+    };
+}
+
+// Төлсөн товчлуур
+function getPaidKeyboard() {
+    return {
+        inline_keyboard: [
+            [{ text: '✅ Төлсөн', callback_data: 'paid_confirm' }]
         ]
     };
 }
@@ -169,12 +204,28 @@ async function handleCallback(callbackQuery) {
         
         await answerCallback(callbackId, `${actionType} сонгогдлоо`);
         
-        const message = `🔄 QPAY үүсгэж байна...\n\n` +
+        // GIF илгээх
+        const caption = `🔄 QPAY үүсгэж байна...\n\n` +
             `Банк: ${bankName}\n` +
             `Гүйлгээ: ${actionType}\n\n` +
             `Түр хүлээнэ үү...`;
         
-        await editMessage(chatId, messageId, message);
+        await sendGif(chatId, LOADING_GIF, caption, getPaidKeyboard());
+    }
+    
+    // Төлсөн товчлуур дарсан үед
+    if (data === 'paid_confirm') {
+        await answerCallback(callbackId, 'Төлбөр амжилттай!');
+        
+        const userState = userStates[chatId] || {};
+        const bankName = userState.bankName || 'Банк';
+        
+        const message = `✅ Амжилттай!\n\n` +
+            `Банк: ${bankName}\n` +
+            `Төлбөр төлөгдлөө.\n\n` +
+            `Баярлалаа!`;
+        
+        await sendMessage(chatId, message);
     }
 }
 
