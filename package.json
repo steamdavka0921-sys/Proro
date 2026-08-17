@@ -4,7 +4,7 @@
   "description": "Khan Bank QPay Telegram Bot",
   "main": "index.js",
   "scripts": {
-    "build": "echo 'No build needed'",
+    "build": "mkdir -p public && cp index.html public/",
     "dev": "netlify dev"
   },
   "dependencies": {
