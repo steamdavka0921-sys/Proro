@@ -12,8 +12,7 @@ async function sendMessage(chatId, text, replyMarkup = null) {
     try {
         const payload = {
             chat_id: chatId,
-            text: text,
-            parse_mode: 'HTML'
+            text: text
         };
         
         if (replyMarkup) {
@@ -54,8 +53,8 @@ async function handleStart(chatId, firstName) {
         ]
     };
     
-    const message = `👋 Сайн байна уу, <b>${firstName}</b>!\n\n` +
-        `💳 <b>QPay Данс</b>\n\n` +
+    const message = `👋 Сайн байна уу, ${firstName}!\n\n` +
+        `💳 QPay Данс\n\n` +
         `Доорх товчлуур дээр дарж Khan Bank аппаар төлбөрөө хийнэ үү:`;
     
     const result = await sendMessage(chatId, message, keyboard);
@@ -111,30 +110,6 @@ exports.handler = async (event, context) => {
                 // Бусад мессежид хариу өгөх
                 await sendMessage(chatId, `Та "${text}" гэж бичсэн. /start гэж бичнэ үү.`);
             }
-        }
-        
-        // Callback query байгаа эсэхийг шалгах
-        if (update.callback_query) {
-            const callbackId = update.callback_query.id;
-            const chatId = update.callback_query.message.chat.id;
-            
-            console.log('Callback query received');
-            
-            // Callback query-д хариу өгөх
-            await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    callback_query_id: callbackId,
-                    text: 'Төлбөр үүсгэж байна...'
-                })
-            });
-            
-            // Khan Bank товчлуурыг дахин илгээх
-            const firstName = update.callback_query.from.first_name || 'Хэрэглэгч';
-            await handleStart(chatId, firstName);
         }
         
         return {
