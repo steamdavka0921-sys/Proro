@@ -1,5 +1,6 @@
 [build]
-  command = "npm install"
+  command = "mkdir -p public && cp index.html public/"
+  publish = "public"
   functions = "netlify/functions"
 
 [functions]
