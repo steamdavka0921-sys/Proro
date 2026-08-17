@@ -61,7 +61,7 @@ exports.handler = async (event, context) => {
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS'
     };
     
     // OPTIONS request handling
@@ -70,6 +70,15 @@ exports.handler = async (event, context) => {
             statusCode: 200,
             headers,
             body: ''
+        };
+    }
+    
+    // GET request handling (test хийхэд)
+    if (event.httpMethod === 'GET') {
+        return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ status: 'Bot is running!' })
         };
     }
     
@@ -93,7 +102,6 @@ exports.handler = async (event, context) => {
         // Callback query байгаа эсэхийг шалгах
         if (update.callback_query) {
             const callbackId = update.callback_query.id;
-            const chatId = update.callback_query.message.chat.id;
             
             // Callback query-д хариу өгөх
             await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
